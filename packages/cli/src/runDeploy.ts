@@ -90,6 +90,7 @@ in your contracts directory to use the default anvil private key.`,
 
   const client = createWalletClient({
     transport: http(rpc, {
+      timeout: 300000,
       batch: opts.rpcBatch
         ? {
             batchSize: 100,
