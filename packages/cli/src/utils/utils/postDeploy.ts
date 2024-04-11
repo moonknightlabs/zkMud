@@ -22,6 +22,8 @@ export async function postDeploy(
         worldAddress,
         "--legacy",
         "--broadcast",
+        "--batch-size",
+        50,
         "--rpc-url",
         rpc,
         "-vvv",
