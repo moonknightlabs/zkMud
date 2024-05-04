@@ -1,3 +1,749 @@
+## Version 2.0.9
+
+Release date: Wed May 01 2024
+
+### Patch changes
+
+**[fix(cli): do not require `PRIVATE_KEY` if using KMS (#2765)](https://github.com/latticexyz/mud/commit/30318687f35a57217e932f9f2b4c80a9d6617ee5)** (@latticexyz/cli)
+
+Fixed `mud deploy` to not require the `PRIVATE_KEY` environment variable when using a KMS signer.
+
+**[feat(create-mud): redstone and garnet chains (#2776)](https://github.com/latticexyz/mud/commit/6b247fb9d1902a5138ad4a05b634b4d0921af433)** (create-mud)
+
+Updated templates with Redstone and Garnet chains and removed the deprecated Lattice testnet chain.
+
+**[feat(store-indexer): add metric for distance from block tag to follow (#2763)](https://github.com/latticexyz/mud/commit/93690fdb1d51f8ef470fd4f1d84490c14bf1f442)** (@latticexyz/store-indexer)
+
+Added a `distance_from_follow_block` metric to compare the latest stored block number with the block number corresponding to the block tag the indexer follows.
+
+**[feat(cli): blockscout is default verifier (#2775)](https://github.com/latticexyz/mud/commit/0b6b70ffd2f8e7eaa9732d2aa5b158fd0927d10b)** (@latticexyz/cli)
+
+`mud verify` now defaults to blockscout if no `--verifier` is provided.
+
+**[fix(cli): run postdeploy with aws flag when kms is enabled (#2766)](https://github.com/latticexyz/mud/commit/428ff972198425cb19d363c92eb49002accdc6a0)** (@latticexyz/cli)
+
+Fixed `mud deploy` to use the `forge script --aws` flag when executing `PostDeploy` with a KMS signer.
+
+Note that you may need to update your `PostDeploy.s.sol` script, with `vm.startBroadcast` receiving no arguments instead of reading a private key from the environment:
+
+```diff
+-uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+-vm.startBroadcast(deployerPrivateKey);
+
++vm.startBroadcast();
+```
+
+**[feat(common): add indexer URL to chain configs (#2771)](https://github.com/latticexyz/mud/commit/764ca0a0c390ddce5d8a618fd4e801e9fc542a0b)** (@latticexyz/store-sync)
+
+Updated `createStoreSync` to default to the chain's indexer URL when no `indexerUrl` is passed in. To intentionally unset the value and not use the indexer at all, `indexerUrl` can now also be `false`.
+
+**[fix(cli): remove postdeploy gas setting in favor of script options (#2756)](https://github.com/latticexyz/mud/commit/074ed66eb64df377e37684c47d7ff15ced16885b)** (@latticexyz/cli)
+
+Removed manual gas setting in PostDeploy step of `mud deploy` in favor of `forge script` fetching it from the RPC.
+
+If you still want to manually set gas, you can use `mud deploy --forgeScriptOptions="--with-gas-price 1000000"`.
+
+**[refactor(common,cli): kms deployer gets keyId from environment (#2760)](https://github.com/latticexyz/mud/commit/e03830ebe3ee3ea6fb1384be53fc26b668fbe607)** (@latticexyz/cli)
+
+The key ID for deploying via KMS signer is now set via an `AWS_KMS_KEY_ID` environment variable to better align with Foundry tooling. To enable KMS signing with this environment variable, use the `--kms` flag.
+
+```diff
+-mud deploy --awsKmsKeyId [key ID]
++AWS_KMS_KEY_ID=[key ID] mud deploy --kms
+```
+
+**[feat(common): add indexer URL to chain configs (#2771)](https://github.com/latticexyz/mud/commit/764ca0a0c390ddce5d8a618fd4e801e9fc542a0b)** (@latticexyz/common)
+
+Added an optional `indexerUrl` property to `MUDChain`, and populated it in the Redstone and Garnet chain configs.
+
+**[feat(common): add chain icons (#2778)](https://github.com/latticexyz/mud/commit/bad3ad1bd9bb86bc7eb83cfb299df92d14c64c46)** (@latticexyz/common)
+
+Added chain icons to Redstone and Garnet chain configs via `chain.iconUrls`.
+
+---
+
+## Version 2.0.8
+
+Release date: Sat Apr 27 2024
+
+### Patch changes
+
+**[fix(store-indexer): allow empty env variable (#2746)](https://github.com/latticexyz/mud/commit/9c599b87bb02db5ae9a9389085b61bde48af9e4a)** (@latticexyz/store-indexer)
+
+Added support for an empty `STORE_ADDRESS=` environment variable.
+This previously would fail the input validation, now it behaves the same way as not setting the `STORE_ADDRESS` variable at all.
+
+**[fix(cli): fix verify with sourcify for dependencies (#2750)](https://github.com/latticexyz/mud/commit/b4eb795ee5a6f8d250d3b3513fe72c5530f69c43)** (@latticexyz/cli)
+
+Patched `mud verify` to properly verify store, world, and world-modules contracts. Currently only `sourcify` is fully supported and is the default verifier.
+
+**[feat(common): add redstone chain config (#2749)](https://github.com/latticexyz/mud/commit/f23318ede18d0b10cf1f4c51dd24a373a5e5f740)** (@latticexyz/common)
+
+Added Garnet testnet and Redstone mainnet chain configs and deprecated Lattice Testnet.
+
+```ts
+import { garnet, redstone } from "@latticexyz/common/chains";
+```
+
+---
+
+## Version 2.0.7
+
+Release date: Thu Apr 25 2024
+
+### Patch changes
+
+**[feat(store-indexer): add prometheus metrics (#2739)](https://github.com/latticexyz/mud/commit/27c4fdee6e04d6d61bef320673bed22b2872b51c)** (@latticexyz/store-indexer)
+
+Add Prometheus metrics at `/metrics` to the Postgres indexer backend and frontend, as well as the SQLite indexer.
+
+**[fix(common): use feeRef for sendTransaction calls (#2725)](https://github.com/latticexyz/mud/commit/375d902ed02541fa5add7012465e05da079d4d95)** (@latticexyz/common)
+
+Added asynchronous polling for current fees to `sendTransaction`.
+
+**[fix(block-logs-stream): handle proxyd errors (#2726)](https://github.com/latticexyz/mud/commit/bf16e729fea1830659b81a6a0ea5fccb6429ea42)** (@latticexyz/block-logs-stream)
+
+Added detection and handling for proxyd rate limit and block range errors.
+
+**[feat(cli): deploy with kms (#2704)](https://github.com/latticexyz/mud/commit/c74a66474169d16a2ed4b7fd9046984d4ceabc3f)** (@latticexyz/cli)
+
+Added a `--awsKmsKeyId` flag to `mud deploy` that deploys the world using an AWS KMS key as a transaction signer.
+
+**[fix(store-sync): await fetchAndStoreLogs (#2702)](https://github.com/latticexyz/mud/commit/16695fea8a0a8d80179c3fbe68120b34de076659)** (@latticexyz/store-sync)
+
+Partially revert [#2665](https://github.com/latticexyz/mud/pull/2665) to guarantee logs are stored in order.
+
+**[fix(cli): add retry to getLogs when getting resource ID's (#2709)](https://github.com/latticexyz/mud/commit/dbc7e066d0bd344a5d9b2586c7f2875d21cfd0ca)** (@latticexyz/cli)
+
+Deploying now retries on "block is out of range" errors, for cases where the RPC is load balanced and out of sync.
+
+**[feat(cli): manually fetch gas price from rpc before PostDeploy runs (#2638)](https://github.com/latticexyz/mud/commit/189050bd2c61ba645325d45a6a4040153d361412)** (@latticexyz/cli)
+
+Deploy will now fetch and set the gas price during execution of PostDeploy script. This should greatly reduce the fees paid for L2s.
+
+**[fix(world-modules): properly concat baseURI and tokenURI in ERC721 module (#2686)](https://github.com/latticexyz/mud/commit/78a94d715af427b77f52a7e2ff4be2cb3752e2a9)** (@latticexyz/world-modules)
+
+Fixed ERC721 module to properly encode token ID as part of token URI.
+
+**[feat(cli): verify command (#2662)](https://github.com/latticexyz/mud/commit/fce741b07dd68f4a0a553bee5d63f1d6b0546283)** (@latticexyz/cli)
+
+Added a new `mud verify` command which verifies all contracts in a project. This includes systems, modules, the WorldFactory and World.
+
+**[fix(common): kms correctly serializes transactions (#2721)](https://github.com/latticexyz/mud/commit/182d70608fce514ae1aec5366a7bbae1dc936844)** (@latticexyz/common)
+
+Added `kmsKeyToAccount`, a [viem custom account](https://viem.sh/docs/accounts/custom#custom-account) that signs transactions using AWS KMS.
+
+To use it, you must first install `@aws-sdk/client-kms@3.x` and `asn1.js@5.x` dependencies into your project. Then create a KMS account with:
+
+```ts
+import { kmsKeyToAccount } from "@latticexyz/common/kms";
+const account = kmsKeyToAccount({ keyId: ... });
+```
+
+By default, a `KMSClient` will be created, but you can also pass one in via the `client` option. The default KMS client will use [your environment's AWS SDK configuration](https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/configuring-the-jssdk.html).
+
+**[fix(cli): fix deployer warning (#2683)](https://github.com/latticexyz/mud/commit/632a7525ab2f125ed01a612987ece58cb1fd9740)** (@latticexyz/cli)
+
+Fixed an issue where deploys were warning about mismatched bytecode when the bytecode was correct and what we expect.
+
+**[fix(create-mud): make worlds.json address type more specific (#2685)](https://github.com/latticexyz/mud/commit/534e7729a7e727575bb7db99c4acda55e8ceb295)** (create-mud)
+
+Made `worlds.json`'s `address` type more like viem's `Hex` type so it's easy to pass through as an argument.
+
+**[refactor(world,cli): rename `useProxy` to `upgradeableWorldImplementation` (#2732)](https://github.com/latticexyz/mud/commit/1ccd627676cb94a07e29e511db037a5f855c3096)** (@latticexyz/world, @latticexyz/cli)
+
+Added a `deploy.upgradeableWorldImplementation` option to the MUD config that deploys the World as an upgradeable proxy contract. The proxy behaves like a regular World contract, but the underlying implementation can be upgraded by calling `setImplementation`.
+
+**[fix(store): enforce unique table names across types (#2736)](https://github.com/latticexyz/mud/commit/ed404b7d840db755f7513d4a7d32b85eaa3dd058)** (@latticexyz/store)
+
+Added a check to `registerTable` that prevents registering both an offchain and onchain table with the same name, making it easier to use human-readable names in indexers.
+
+**[feat(world-modules): string systemId in `callWithSignature` typehash (#2700)](https://github.com/latticexyz/mud/commit/2c9b16c77aca12e4c23e96de83e5820c09cb3b9d)** (@latticexyz/world-modules, @latticexyz/world)
+
+Replaced the `systemId` field in the `Unstable_CallWithSignatureSystem` typehash with individual `systemNamespace` and `systemName` string fields.
+
+**[feat(cli): add user-specified PostDeploy forge options (#2703)](https://github.com/latticexyz/mud/commit/8493f88f8db972ef2a7c1caa49f8231c60ed2ba5)** (@latticexyz/cli)
+
+Added a `--forgeScriptOptions` flag to deploy and dev commands to allow passing in additional CLI flags to `forge script` command.
+
+**[fix(common): make `Resource` type props readonly (#2516)](https://github.com/latticexyz/mud/commit/f736c43dbc39edff51957a298b563576237429df)** (@latticexyz/common)
+
+`Resource` type props are now readonly.
+
+---
+
+## Version 2.0.6
+
+Release date: Wed Apr 17 2024
+
+### Patch changes
+
+**[feat(store-indexer): add cache headers (#2669)](https://github.com/latticexyz/mud/commit/36354994f702f22c569e52524ea4a3f523050c5a)** (@latticexyz/store-indexer)
+
+Added `Cache-Control` and `Content-Type` headers to the postgres indexer API.
+
+**[fix(common): latency improvements (#2641)](https://github.com/latticexyz/mud/commit/6c8ab471adfb522e841b679072c7ff53fe105034)** (@latticexyz/common)
+
+Reduced the number of RPC requests before sending a transaction in the `transactionQueue` viem decorator.
+
+**[fix(store,world): fix StoreRead.getDynamicFieldLength (#2680)](https://github.com/latticexyz/mud/commit/103db6ced9815b61e1b40348f814958f240f66fc)** (@latticexyz/store)
+
+Patched `StoreRead.getDynamicFieldLength` to properly read `StoreCore.getDynamicFieldLength`.
+
+Previously `StoreRead.getDynamicFieldLength` incorrectly read from `StoreCore.getFieldLength`, which expected a `fieldIndex` instead of a `dynamicFieldIndex`, and thereby returned an invalid result if the table had both static and dynamic fields (in which case `fieldIndex` != `dynamicFieldIndex`). `StoreRead` is used for external reads from the `Store`/`World` contract, so this bug only materialized in external table reads (ie from `Systems` outside the root namespace) of the dynamic length of a field in a table with both static and dynamic fields.
+
+**[feat(world-modules): callWithSignature chain id is salt (#2648)](https://github.com/latticexyz/mud/commit/96e82b7f11ef30a331941c202fe09591d348cb41)** (@latticexyz/world-modules)
+
+Moved the chain ID in `CallWithSignature` from the `domain.chainId` to the `domain.salt` field to allow for cross-chain signing without requiring wallets to switch networks. The value of this field should be the chain on which the world lives, rather than the chain the wallet is connected to.
+
+**[refactor(store,world): refactor types, remove redundant casts (#2555)](https://github.com/latticexyz/mud/commit/9720b568cd302c597fd0030e59eceab2bb833e39)** (@latticexyz/store, @latticexyz/world)
+
+Internal type improvements.
+
+**[chore: bump viem to 2.9.20 (#2681)](https://github.com/latticexyz/mud/commit/c18e93c5e1fb6987f31369f2e81f26ea2ac196d8)** (@latticexyz/block-logs-stream, @latticexyz/cli, @latticexyz/common, @latticexyz/config, @latticexyz/dev-tools, @latticexyz/faucet, @latticexyz/protocol-parser, @latticexyz/query, @latticexyz/schema-type, @latticexyz/store-indexer, @latticexyz/store-sync, @latticexyz/store, @latticexyz/world, create-mud)
+
+Bumped viem to 2.9.20.
+
+**[docs: add changeset for #2645 (#2647)](https://github.com/latticexyz/mud/commit/d95028a6d1233557ee605f4691f0d47ced47a681)** (create-mud, @latticexyz/block-logs-stream, @latticexyz/protocol-parser, @latticexyz/store-indexer, @latticexyz/schema-type, @latticexyz/store-sync, @latticexyz/dev-tools, @latticexyz/common, @latticexyz/config, @latticexyz/faucet, @latticexyz/query, @latticexyz/store, @latticexyz/world, @latticexyz/cli)
+
+Bumped viem to 2.9.16.
+
+**[docs: add changeset for devtools top up (#2658)](https://github.com/latticexyz/mud/commit/77d3b30942e8593b4aeb5d7921494ca0d627786b)** (@latticexyz/dev-tools)
+
+Added a "top up" button to account balance when running on anvil.
+
+**[fix(store-sync): reduce latency in waitForTransaction (#2665)](https://github.com/latticexyz/mud/commit/de3bc3d1fe78762e43b692f6f3334dee9b632c8f)** (@latticexyz/store-sync)
+
+Small optimizations in `waitForTransaction` to parallelize network requests.
+
+**[feat(store-sync): add status and block number to return type of waitForTransaction (#2668)](https://github.com/latticexyz/mud/commit/8c3dcf77c2481b11622a0603c8a09a5b1fb5f787)** (@latticexyz/store-sync)
+
+`waitForTransaction` now returns a `Promise<{ blockNumber: bigint, status: "success" | "reverted" }>` instead of `Promise<void>`, to allow consumers to react to reverted transactions without refetching the transaction receipt.
+
+---
+
+## Version 2.0.5
+
+Release date: Fri Apr 12 2024
+
+### Patch changes
+
+**[fix(world-modules): add missing interfaces (#2605)](https://github.com/latticexyz/mud/commit/e2e8ec8b3e7152337cb81a5d54c9bb36486c462e)** (@latticexyz/world-modules)
+
+Added missing system interfaces for ERC721, UniqueEntity, and CallWithSignature modules.
+
+**[fix(common): pass through rest of nonce manager opts (#2616)](https://github.com/latticexyz/mud/commit/a9e8a407b5d6f356d7d0a1c1f093de926ffb072f)** (@latticexyz/common)
+
+Fixed `getNonceManager` to correctly pass all options to `createNonceManager`.
+
+**[feat(world-modules): add `validateCallWithSignature` to `Unstable_CallWithSignatureModule` (#2614)](https://github.com/latticexyz/mud/commit/081c396790a0b68d85ef7735f0e7e643b99721c3)** (@latticexyz/world-modules)
+
+Added `validateCallWithSignature` function to `Unstable_CallWithSignatureModule` to validate a signature without executing the call.
+
+**[fix(world-modules): explicitly export mud config (#2598)](https://github.com/latticexyz/mud/commit/e3c3a118e60e8c4de6b16c521d2d78b0b9f670c2)** (@latticexyz/world-modules)
+
+Exported mud config as internal.
+
+**[feat(create-mud): change `anvil` to create a block every two seconds (#2635)](https://github.com/latticexyz/mud/commit/aa6ecf7b1157a61c21e0bb15c060eb2fc5936e12)** (create-mud)
+
+Updated `anvil` args with two second block time to better reflect L2s
+
+**[fix(store): return zero for uninitialised static array elements (#2613)](https://github.com/latticexyz/mud/commit/b798ccb2b19bdda2995f188912258c7563747e42)** (@latticexyz/store)
+
+Fixed the behaviour of static arrays, so that they return zero for uninitialised values, to mirror the native Solidity behavior. Previously they reverted with `Store_IndexOutOfBounds` if the index had not been set yet.
+
+**[chore: changeset for `callWithSignature` (#2601)](https://github.com/latticexyz/mud/commit/d02efd80292db1c671fca5261560fdf525871475)** (@latticexyz/cli, @latticexyz/world-modules, @latticexyz/world)
+
+Replaced the `Unstable_DelegationWithSignatureModule` preview module with a more generalized `Unstable_CallWithSignatureModule` that allows making arbitrary calls (similar to `callFrom`).
+
+This module is still marked as `Unstable`, because it will be removed and included in the default `World` deployment once it is audited.
+
+---
+
+## Version 2.0.4
+
+Release date: Tue Apr 02 2024
+
+### Patch changes
+
+**[feat(common): allow specifying concurrency in transactionQueue (#2589)](https://github.com/latticexyz/mud/commit/620e4ec13ca73ceecefc257ef8a8eadb2bdf6aa4)** (@latticexyz/common)
+
+`transactionQueue` now accepts a `queueConcurrency` to allow adjusting the number of concurrent calls to the mempool. This defaults to `1` to ensure transactions are ordered and nonces are handled properly. Any number greater than that is likely to see nonce errors and transactions arriving out of order, but this may be an acceptable trade-off for some applications that can safely retry.
+
+---
+
+## Version 2.0.3
+
+Release date: Tue Apr 02 2024
+
+### Patch changes
+
+**[feat(common,world): improvements for smart accounts (#2578)](https://github.com/latticexyz/mud/commit/d2e4d0fbbc011e64e593b0dd784cb8f2d0da7522)** (@latticexyz/common)
+
+`transactionQueue` decorator now accepts an optional `publicClient` argument, which will be used in place of the extended viem client for making public action calls (`getChainId`, `getTransactionCount`, `simulateContract`, `call`). This helps in cases where the extended viem client is a smart account client, like in [permissionless.js](https://github.com/pimlicolabs/permissionless.js), where the transport is the bundler, not an RPC.
+
+`writeObserver` decorator now accepts any `Client`, not just a `WalletClient`.
+
+`createBurnerAccount` now returns a `PrivateKeyAccount`, the more specific `Account` type.
+
+**[feat(common,world): improvements for smart accounts (#2578)](https://github.com/latticexyz/mud/commit/d2e4d0fbbc011e64e593b0dd784cb8f2d0da7522)** (@latticexyz/world)
+
+`callFrom` decorator now accepts any `Client`, not just a `WalletClient`. It also no longer attempts to wrap/redirect calls to `call`, `callFrom`, and `registerDelegationWithSignature`.
+
+---
+
+## Version 2.0.2
+
+Release date: Mon Apr 01 2024
+
+### Patch changes
+
+**[feat(world-modules): register delegation with signature (#2480)](https://github.com/latticexyz/mud/commit/e86bd14db092331454a604183be5f5739563f449)** (@latticexyz/cli, @latticexyz/world-modules, @latticexyz/world)
+
+Added a new preview module, `Unstable_DelegationWithSignatureModule`, which allows registering delegations with a signature.
+
+Note: this module is marked as `Unstable`, because it will be removed and included in the default `World` deployment once it is audited.
+
+**[chore: threejs template changeset (#2529)](https://github.com/latticexyz/mud/commit/a1101f785719f6b61449db62e265bf0f90665ccb)** (create-mud)
+
+Changed the controls in the `threejs` template from arrow keys to WASD and added text to explain what the app does.
+
+**[docs: clarify `callFrom` changelog (#2579)](https://github.com/latticexyz/mud/commit/090a099bf4891dfa3cd95f88b68dcfd5ea14bdea)** (@latticexyz/world)
+
+Added a viem client decorator for account delegation. By extending viem clients with this function after delegation, the delegation is automatically applied to World contract writes. This means that these writes are made on behalf of the delegator. Internally, it transforms the write arguments to use `callFrom`.
+
+This is an internal feature and is not ready for stable consumption yet, so it's not yet exported. Its API may change.
+
+When using with a viem public client, system function selectors will be fetched from the world:
+
+```ts
+walletClient.extend(
+  callFrom({
+    worldAddress,
+    delegatorAddress,
+    publicClient,
+  }),
+);
+```
+
+Alternatively, a `worldFunctionToSystemFunction` handler can be passed in that will translate between world function selectors and system function selectors for cases where you want to provide your own behavior or use data already cached in e.g. Zustand or RECS.
+
+```ts
+walletClient.extend(
+  callFrom({
+    worldAddress,
+    delegatorAddress,
+    worldFunctionToSystemFunction: async (worldFunctionSelector) => {
+      const systemFunction = useStore.getState().getValue(tables.FunctionSelectors, { worldFunctionSelector })!;
+      return {
+        systemId: systemFunction.systemId,
+        systemFunctionSelector: systemFunction.systemFunctionSelector,
+      };
+    },
+  }),
+);
+```
+
+**[refactor(cli): remove forge cache workaround (#2576)](https://github.com/latticexyz/mud/commit/3b845d6b23b950e30310886407de11bb33fd028c)** (@latticexyz/cli)
+
+Remove workaround for generating `IWorld` interface from cached forge files as this was fixed by forge.
+
+**[fix(create-mud): run anvil in its own process (#2538)](https://github.com/latticexyz/mud/commit/9e239765e6dd253819a7aa77a87caa528be549db)** (create-mud)
+
+Templates now run anvil in its own process (via mprocs) for better visibility into anvil logs.
+
+---
+
+## Version 2.0.1
+
+Release date: Thu Mar 21 2024
+
+### Patch changes
+
+**[fix(store,world): minor config validation fixes (#2517)](https://github.com/latticexyz/mud/commit/4a6b45985c5da66145078dc92884f65403ecd697)** (@latticexyz/store, @latticexyz/world)
+
+Minor fixes to config input validations:
+
+- `systems.openAccess` incorrectly expected `true` as the only valid input. It now allows `boolean`.
+- The config complained if parts of it were defined `as const` outside the config input. This is now possible.
+- Shorthand inputs are now enabled.
+
+---
+
+## Version 2.0.0
+
+Release date: Thu Mar 21 2024
+
+---
+
+## Version 2.0.0-next.18
+
+Release date: Thu Mar 21 2024
+
+### Major changes
+
+**[docs: add store/world config changesets (#2497)](https://github.com/latticexyz/mud/commit/c9ee5e4a28e9eea6aefd4e5a535a60760d24f7cd)** (@latticexyz/store, @latticexyz/world)
+
+Store and World configs have been rebuilt with strong types. The shape of these configs have also changed slightly for clarity, the biggest change of which is merging of `keySchema` and `valueSchema` into a single `schema` with a separate `key` for a table's primary key.
+
+To migrate, first update the imported config method:
+
+```diff filename="mud.config.ts"
+-import { mudConfig } from "@latticexyz/world/register";
++import { defineWorld } from "@latticexyz/world";
+
+-export default mudConfig({
++export default defineWorld({
+```
+
+_Note that if you are only using Store, you will need to import `defineStore` from `@latticexyz/store`._
+
+Then migrate the table key by renaming `keySchema` to `schema` and define the table `key` with each field name from your key schema:
+
+```diff filename="mud.config.ts"
+ export default defineWorld({
+   tables: {
+     Position: {
+-      keySchema: {
++      schema: {
+         player: "address",
+       },
+       valueSchema: {
+         x: "int32",
+         y: "int32",
+       },
++      key: ['player'],
+     },
+   },
+ });
+```
+
+Now we can merge the `valueSchema` into `schema`.
+
+```diff filename="mud.config.ts"
+ export default defineWorld({
+   tables: {
+     Position: {
+       schema: {
+         player: "address",
+-      },
+-      valueSchema: {
+         x: "int32",
+         y: "int32",
+       },
+       key: ['player'],
+     },
+   },
+ });
+```
+
+If you previously used the table config shorthand without the full `keySchema` and `valueSchema`, some of the defaults have changed. Shorthands now use an `id: "bytes32"` field by default rather than `key: "bytes32"` and corresponding `key: ["id"]`. To keep previous behavior, you may have to manually define your `schema` with the previous `key` and `value` fields.
+
+```diff filename="mud.config.ts"
+ export default defineWorld({
+   tables: {
+-    OwnedBy: "address",
++    OwnedBy: {
++      schema: {
++        key: "bytes32",
++        value: "address",
++      },
++      key: ["key"],
++    },
+   },
+ });
+```
+
+Singleton tables are defined similarly, where an empty `key` rather than `keySchema` is provided:
+
+```diff filename="mud.config.ts"
+-keySchema: {}
++key: []
+```
+
+Offchain tables are now defined as a table `type` instead an `offchainOnly` boolean:
+
+```diff filename="mud.config.ts"
+-offchainOnly: true
++type: 'offchainTable'
+```
+
+All codegen options have moved under `codegen`:
+
+```diff filename="mud.config.ts"
+ export default defineWorld({
+-  codegenDirectory: "…",
++  codegen: {
++    outputDirectory: "…",
++  },
+   tables: {
+     Position: {
+       schema: {
+         player: "address",
+         x: "int32",
+         y: "int32",
+       },
+       key: ['player'],
+-      directory: "…",
+-      dataStruct: false,
++      codegen: {
++        outputDirectory: "…",
++        dataStruct: false,
++      },
+     },
+   },
+ });
+```
+
+**[refactor: move table ID and field layout constants into table library (#2327)](https://github.com/latticexyz/mud/commit/44236041fb792fc676481d9d30b5846752ed0491)** (create-mud, @latticexyz/cli, @latticexyz/common, @latticexyz/store, @latticexyz/world, @latticexyz/world-modules)
+
+Moved table ID and field layout constants in code-generated table libraries from the file level into the library, for clearer access and cleaner imports.
+
+```diff
+-import { SomeTable, SomeTableTableId } from "./codegen/tables/SomeTable.sol";
++import { SomeTable } from "./codegen/tables/SomeTable.sol";
+
+-console.log(SomeTableTableId);
++console.log(SomeTable._tableId);
+
+-console.log(SomeTable.getFieldLayout());
++console.log(SomeTable._fieldLayout);
+```
+
+**[feat(store,world): set protocol version, add tests (#2412)](https://github.com/latticexyz/mud/commit/9aa5e7865bc8f6f090f599ac1367bc927aaee2e4)** (@latticexyz/store, @latticexyz/world)
+
+Set the protocol version to `2.0.0` for each Store and World.
+
+**[refactor(schema-type,protocol-parser): explicit internal vs external exports (#2452)](https://github.com/latticexyz/mud/commit/b38c096d88340080ec02277bc772c1269b6b65fd)** (@latticexyz/protocol-parser, @latticexyz/schema-type)
+
+Moved all existing exports to a `/internal` import path to indicate that these are now internal-only and deprecated. We'll be replacing these types and functions with new ones that are compatible with our new, strongly-typed config.
+
+**[feat(store): add field index to Store_SpliceDynamicData event (#2279)](https://github.com/latticexyz/mud/commit/8193136a9511d066aeebce82155d3509aa760282)** (@latticexyz/store, @latticexyz/store-sync)
+
+Added `dynamicFieldIndex` to the `Store_SpliceDynamicData` event. This enables indexers to store dynamic data as a blob per dynamic field without a schema lookup.
+
+**[refactor: rename PackedCounter to EncodedLengths (#2490)](https://github.com/latticexyz/mud/commit/3e7d83d01b9e027df9ef76068ab2e4ddf5c71d4b)** (@latticexyz/cli, @latticexyz/protocol-parser, @latticexyz/store, @latticexyz/world-modules, @latticexyz/world, create-mud)
+
+Renamed `PackedCounter` to `EncodedLengths` for consistency.
+
+**[feat(store-sync): adjust DB schema/table names for consistency (#2379)](https://github.com/latticexyz/mud/commit/adc68225008b481df6b47050638677fd936c22c9)** (@latticexyz/store-indexer, @latticexyz/store-sync)
+
+PostgreSQL sync/indexer now uses `{storeAddress}` for its database schema names and `{namespace}__{tableName}` for its database table names (or just `{tableName}` for root namespace), to be more consistent with the rest of the MUD codebase.
+
+For namespaced tables:
+
+```diff
+- SELECT * FROM 0xfff__some_ns.some_table
++ SELECT * FROM 0xfff.some_ns__some_table
+```
+
+For root tables:
+
+```diff
+- SELECT * FROM 0xfff__.some_table
++ SELECT * FROM 0xfff.some_table
+```
+
+SQLite sync/indexer now uses snake case for its table names and column names for easier writing of queries and to better match PostgreSQL sync/indexer naming.
+
+```diff
+- SELECT * FROM 0xfFf__someNS__someTable
++ SELECT * FROM 0xfff__some_ns__some_table
+```
+
+**[feat: use new config (#2483)](https://github.com/latticexyz/mud/commit/252a1852dc76c8e3f923c4f066620278ca69c430)** (@latticexyz/cli, @latticexyz/dev-tools, @latticexyz/store-sync, @latticexyz/store, @latticexyz/world-modules, @latticexyz/world, create-mud)
+
+Migrated to new config format.
+
+### Minor changes
+
+**[feat(cli): add a RPC batch option to cli (#2322)](https://github.com/latticexyz/mud/commit/645736dfa00508cbaa7ba84b4e1a19f03b09fa7f)** (@latticexyz/cli)
+
+Added an `--rpcBatch` option to `mud deploy` command to batch RPC calls for rate limited RPCs.
+
+**[feat(store-sync,store-indexer): add followBlockTag option (#2315)](https://github.com/latticexyz/mud/commit/3622e39dd5be2b0e98dfae38040fc35ccf01fe87)** (@latticexyz/store-indexer, @latticexyz/store-sync)
+
+Added a `followBlockTag` option to configure which block number to follow when running `createStoreSync`. It defaults to `latest` (current behavior), which is recommended for individual clients so that you always have the latest chain state.
+
+Indexers now default to `safe` to avoid issues with reorgs and load-balanced RPCs being out of sync. This means indexers will be slightly behind the latest block number, but clients can quickly catch up. Indexers can override this setting using `FOLLOW_BLOCK_TAG` environment variable.
+
+**[refactor(world): registerRootFunctionSelector takes system signature (#2395)](https://github.com/latticexyz/mud/commit/5debcca83e8fbb732bd1ef55391b5251481abdf4)** (@latticexyz/world)
+
+`registerRootFunctionSelector` now expects a `systemFunctionSignature` instead of a `systemFunctionSelector`. Internally, we compute the selector from the signature. This allows us to track system function signatures that are registered at the root so we can later generate ABIs for these systems.
+
+**[feat(common): add viem actions that work the same as the current wrappers (#2347)](https://github.com/latticexyz/mud/commit/5926765556e8631baf192c0fb47fe87642c12368)** (@latticexyz/common, create-mud)
+
+Added viem custom client actions that work the same as MUD's now-deprecated `getContract`, `writeContract`, and `sendTransaction` wrappers. Templates have been updated to reflect the new patterns.
+
+You can migrate your own code like this:
+
+```diff
+-import { createWalletClient } from "viem";
+-import { getContract, writeContract, sendTransaction } from "@latticexyz/common";
++import { createWalletClient, getContract } from "viem";
++import { transactionQueue, writeObserver } from "@latticexyz/common/actions";
+
+-const walletClient = createWalletClient(...);
++const walletClient = createWalletClient(...)
++  .extend(transactionQueue())
++  .extend(writeObserver({ onWrite });
+
+ const worldContract = getContract({
+   client: { publicClient, walletClient },
+-  onWrite,
+ });
+```
+
+**[refactor(store): add StoreWrite and Store abstract contracts (#2411)](https://github.com/latticexyz/mud/commit/93390d8994bac0ad7c4a66ba00bc9783899b8cff)** (@latticexyz/store, @latticexyz/world)
+
+Added an `abstract` `StoreKernel` contract, which includes all Store interfaces except for registration, and implements write methods, `protocolVersion` and initializes `StoreCore`. `Store` extends `StoreKernel` with the `IStoreRegistration` interface. `StoreData` is removed as a separate interface/contract. `World` now extends `StoreKernel` (since the registration methods are added via the `InitModule`).
+
+**[refactor(store): make static array length a constant (#2410)](https://github.com/latticexyz/mud/commit/144c0d8db85a28b0c09f2efdf21f078a9e66af97)** (@latticexyz/store)
+
+Replaced the static array length getters in table libraries with constants.
+
+**[feat(gas-report): run gas report with --isolate (#2331)](https://github.com/latticexyz/mud/commit/90d0d79cfc8e035ad17a2e18917f68d5a0d88f01)** (@latticexyz/gas-report)
+
+Now uses `--isolate` flag in `forge test` for more accurate gas measurement.
+
+**[feat(cli): link and deploy public libraries (#1910)](https://github.com/latticexyz/mud/commit/5554b197a26f2a3207688d53fecf85e6a77624e3)** (@latticexyz/cli)
+
+`mud deploy` now supports public/linked libraries.
+
+This helps with cases where system contracts would exceed the EVM bytecode size limit and logic would need to be split into many smaller systems.
+
+Instead of the overhead and complexity of system-to-system calls, this logic can now be moved into public libraries that will be deployed alongside your systems and automatically `delegatecall`ed.
+
+**[refactor: hardcode key/value schema in table libraries (#2328)](https://github.com/latticexyz/mud/commit/3042f86e66ed39618bf520b5dbba06bfd23486a4)** (create-mud, @latticexyz/store, @latticexyz/world, @latticexyz/world-modules)
+
+Moved key schema and value schema methods to constants in code-generated table libraries for less bytecode and less gas in register/install methods.
+
+```diff
+-console.log(SomeTable.getKeySchema());
++console.log(SomeTable._keySchema);
+
+-console.log(SomeTable.getValueSchema());
++console.log(SomeTable._valueSchema);
+```
+
+**[feat: upgrade viem to v2 (#2284)](https://github.com/latticexyz/mud/commit/d7b1c588a73ab8d5f49165841fde3bfbe78fd981)** (@latticexyz/block-logs-stream, @latticexyz/cli, @latticexyz/common, @latticexyz/config, @latticexyz/dev-tools, @latticexyz/faucet, @latticexyz/protocol-parser, @latticexyz/schema-type, @latticexyz/store-indexer, @latticexyz/store-sync, @latticexyz/store, @latticexyz/world, create-mud)
+
+Upgraded all packages and templates to viem v2.7.12 and abitype v1.0.0.
+
+Some viem APIs have changed and we've updated `getContract` to reflect those changes and keep it aligned with viem. It's one small code change:
+
+```diff
+ const worldContract = getContract({
+   address: worldAddress,
+   abi: IWorldAbi,
+-  publicClient,
+-  walletClient,
++  client: { public: publicClient, wallet: walletClient },
+ });
+```
+
+### Patch changes
+
+**[fix(cli): throw error when deploying overlapping systems (#2325)](https://github.com/latticexyz/mud/commit/8f49c277d255d437b2db27208e923ecbe4e2756d)** (@latticexyz/cli, @latticexyz/world)
+
+Attempting to deploy multiple systems where there are overlapping system IDs now throws an error.
+
+**[fix(common): use `setTimeout` as fallback for `requestIdleCallback` (#2406)](https://github.com/latticexyz/mud/commit/82693072f749a7234eb0c2bf9e2cec39ea8ad2a0)** (@latticexyz/common)
+
+`waitForIdle` now falls back to `setTimeout` for environments without `requestIdleCallback`.
+
+**[refactor: human-readable resource IDs use double underscore (#2310)](https://github.com/latticexyz/mud/commit/d5c0682fbd34fd7d5a96cd66a14b126c8f1afdb7)** (@latticexyz/store-sync, @latticexyz/dev-tools, @latticexyz/common, @latticexyz/cli)
+
+Updated all human-readable resource IDs to use `{namespace}__{name}` for consistency with world function signatures.
+
+**[chore: remove some unused files (#2398)](https://github.com/latticexyz/mud/commit/01e46d99cd9c14e826fa198171d7e17d7896a721)** (@latticexyz/common, @latticexyz/react)
+
+Removed some unused files, namely `curry` in `@latticexyz/common` and `useDeprecatedComputedValue` from `@latticexyz/react`.
+
+**[fix(world-modules): token modules always register namespace (#2352)](https://github.com/latticexyz/mud/commit/4be22ba41c39cf4e93f85065c2e59269bdc693e0)** (@latticexyz/world-modules)
+
+ERC20 and ERC721 implementations now always register the token namespace, instead of checking if it has already been registered. This prevents issues with registering the namespace beforehand, namely that only the owner of a system can create a puppet for it.
+
+**[refactor(store): store core imports store events (#2356)](https://github.com/latticexyz/mud/commit/2c920de7b04bddde0280b1699a9b047182aa712c)** (@latticexyz/store)
+
+Refactored `StoreCore` to import `IStoreEvents` instead of defining the events twice.
+
+**[feat(world): emit salt in WorldDeployed event (#2301)](https://github.com/latticexyz/mud/commit/3be4deecf8bc19ebba9723237be2264997ef6292)** (@latticexyz/world)
+
+Added salt to the `WorldDeployed` event.
+
+**[chore: upgrade to typescript 5.4.2 (#2397)](https://github.com/latticexyz/mud/commit/257a0afc78fa8e5ecbf0ecba44de151b858a2f49)** (@latticexyz/cli, create-mud)
+
+Bumped `typescript` to `5.4.2`, `eslint` to `8.57.0`, and both `@typescript-eslint/eslint-plugin` and `@typescript-eslint/parser` to `7.1.1`.
+
+**[fix(common): remove underscore prefix from root namespace labels (#2400)](https://github.com/latticexyz/mud/commit/307abab341cd5b1bb2bef86f9c7335b6e6e798f0)** (@latticexyz/common)
+
+`resourceToLabel` now correctly returns just the resource name if its in the root namespace.
+
+**[chore(noise): remove noise package (#2304)](https://github.com/latticexyz/mud/commit/5a8dfc8570de02acb60a9975cb6c41763b757ef3)** (@latticexyz/noise)
+
+Removed the @latticexyz/noise package.
+
+**[refactor(store): event interfaces for Store libraries (#2348)](https://github.com/latticexyz/mud/commit/c991c71ae2eed8ec3c8a328962439710cffc135d)** (@latticexyz/store)
+
+Added interfaces for all errors that are used by `StoreCore`, which includes `FieldLayout`, `PackedCounter`, `Schema`, and `Slice`. This interfaces are inherited by `IStore`, ensuring that all possible errors are included in the `IStore` ABI for proper decoding in the frontend.
+
+**[docs: add missing changeset (#2374)](https://github.com/latticexyz/mud/commit/e34d117082475b801e07f331362f961c910069df)** (@latticexyz/common)
+
+Moved the transaction simulation step to just before sending the transaction in our transaction queue actions (`sendTransaction` and `writeContract`).
+
+This helps avoid cascading transaction failures for deep queues or when a transaction succeeding depends on the value of the previous.
+
+**[fix(store): restore bytesN helpers (#2403)](https://github.com/latticexyz/mud/commit/190fdd113862de2a5d35dd24206e2278b8cb9bf7)** (@latticexyz/store)
+
+Restored `Bytes.sliceN` helpers that were previously (mistakenly) removed and renamed them to `Bytes.getBytesN`.
+
+If you're upgrading an existing MUD project, you can rerun codegen with `mud build` to update your table libraries to the new function names.
+
+**[chore: upgrade prettier to 3.2.5 and prettier-plugin-solidity to 1.3.1 (#2303)](https://github.com/latticexyz/mud/commit/db314a7490b7797322fd0568cbeec0066c231666)** (@latticexyz/common)
+
+Upgraded prettier version to 3.2.5 and prettier-plugin-solidity version to 1.3.1.
+
+**[feat(world): add system signatures to FunctionSignatures (#2392)](https://github.com/latticexyz/mud/commit/1a82c278dd8037155b6449e383b3a00d6453ea3e)** (@latticexyz/world)
+
+Added system signatures to the `FunctionSignatures` table, so they can be used to generate system ABIs and decode system calls made via the world.
+
+**[fix(gas-report): update filename matcher (#2277)](https://github.com/latticexyz/mud/commit/a02da555b82b494acdef8cc5b8f58fc6760d1c07)** (@latticexyz/gas-report)
+
+Fixed gas report parsing for foundry versions released after 2024-02-15.
+
+**[feat(create-mud): add additional recommended vscode extensions (#2440)](https://github.com/latticexyz/mud/commit/5237e32054b99542c1dd38c56df6f2235c4c79be)** (create-mud)
+
+Added `dbaeumer.vscode-eslint` and `esbenp.prettier-vscode` to recommended VSCode extensions.
+
+**[refactor(world): add IWorldEvents with HelloWorld (#2358)](https://github.com/latticexyz/mud/commit/86766ce12c749a247216bf753889c35745f4d722)** (@latticexyz/world)
+
+Created an `IWorldEvents` interface with `HelloStore`, so all World events are defined in a single interface.
+
+**[fix(store-sync): track changed records together in zustand (#2387)](https://github.com/latticexyz/mud/commit/3f5d33afb19cf0c99269445120f5e985806241ad)** (@latticexyz/store-sync)
+
+Fixes an issue with Zustand store sync where multiple updates to a record for a key in the same block did not get tracked and applied properly.
+
+**[refactor(store): hellostore in IStoreEvents (#2357)](https://github.com/latticexyz/mud/commit/c58da9adc6c67bc410fdc1c72f21cb1af8bdb50f)** (@latticexyz/store)
+
+Moved the `HelloStore` to `IStoreEvents` so all Store events are defined in the same interface.
+
+**[feat(world): world kernel inherits `IModuleErrors` (#2380)](https://github.com/latticexyz/mud/commit/be18b75b93716a2d948496009ae34d6cb0cf389a)** (@latticexyz/world)
+
+`IWorldKernel` now inherits `IModuleErrors` so it can render the correct errors if the World reverts when delegatecalled with Module code.
+
+**[feat(cli): deterministic deployer fallback (#2261)](https://github.com/latticexyz/mud/commit/9c83adc01c2bcd8c390318006a0cf8139b747d6d)** (@latticexyz/cli)
+
+Added a non-deterministic fallback for deploying to chains that have replay protection on and do not support pre-EIP-155 transactions (no chain ID).
+
+If you're using `mud deploy` and there's already a [deterministic deployer](https://github.com/Arachnid/deterministic-deployment-proxy) on your target chain, you can provide the address with `--deployerAddress 0x...` to still get some determinism.
+
+**[refactor(world): rename functionSelector to worldFunctionSelector (#2391)](https://github.com/latticexyz/mud/commit/95f64c85e5a10106ce7cc9dc5575fcebeeb87151)** (@latticexyz/world)
+
+Renamed the `functionSelector` key in the `FunctionSelectors` table to `worldFunctionSelector`. This clarifies that `FunctionSelectors` is for world function selectors and can be used to generate the world ABI.
+
+---
+
 ## Version 2.0.0-next.17
 
 Release date: Tue Feb 20 2024

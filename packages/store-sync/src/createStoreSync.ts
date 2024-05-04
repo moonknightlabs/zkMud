@@ -1,4 +1,4 @@
-import { StoreConfig, storeEventsAbi } from "@latticexyz/store";
+import { storeEventsAbi } from "@latticexyz/store";
 import { Hex, TransactionReceiptNotFoundError } from "viem";
 import {
   StorageAdapter,
@@ -8,6 +8,7 @@ import {
   SyncOptions,
   SyncResult,
   internalTableIds,
+  WaitForTransactionResult,
 } from "./common";
 import { createBlockStream } from "@latticexyz/block-logs-stream";
 import {
@@ -25,19 +26,20 @@ import {
   shareReplay,
   combineLatest,
   scan,
-  identity,
+  mergeMap,
 } from "rxjs";
 import { debug as parentDebug } from "./debug";
 import { SyncStep } from "./SyncStep";
 import { bigIntMax, chunk, isDefined, waitForIdle } from "@latticexyz/common/utils";
 import { getSnapshot } from "./getSnapshot";
 import { fetchAndStoreLogs } from "./fetchAndStoreLogs";
+import { Store as StoreConfig } from "@latticexyz/store";
 
 const debug = parentDebug.extend("createStoreSync");
 
 const defaultFilters: SyncFilter[] = internalTableIds.map((tableId) => ({ tableId }));
 
-type CreateStoreSyncOptions<TConfig extends StoreConfig = StoreConfig> = SyncOptions<TConfig> & {
+type CreateStoreSyncOptions<config extends StoreConfig = StoreConfig> = SyncOptions<config> & {
   storageAdapter: StorageAdapter;
   onProgress?: (opts: {
     step: SyncStep;
@@ -48,7 +50,7 @@ type CreateStoreSyncOptions<TConfig extends StoreConfig = StoreConfig> = SyncOpt
   }) => void;
 };
 
-export async function createStoreSync<TConfig extends StoreConfig = StoreConfig>({
+export async function createStoreSync<config extends StoreConfig = StoreConfig>({
   storageAdapter,
   onProgress,
   publicClient,
@@ -61,7 +63,7 @@ export async function createStoreSync<TConfig extends StoreConfig = StoreConfig>
   initialState,
   initialBlockLogs,
   indexerUrl,
-}: CreateStoreSyncOptions<TConfig>): Promise<SyncResult> {
+}: CreateStoreSyncOptions<config>): Promise<SyncResult> {
   const filters: SyncFilter[] =
     initialFilters.length || tableIds.length
       ? [...initialFilters, ...tableIds.map((tableId) => ({ tableId })), ...defaultFilters]
@@ -94,7 +96,15 @@ export async function createStoreSync<TConfig extends StoreConfig = StoreConfig>
       filters,
       initialState,
       initialBlockLogs,
-      indexerUrl,
+      indexerUrl:
+        indexerUrl !== false
+          ? indexerUrl ??
+            (publicClient.chain &&
+            "indexerUrl" in publicClient.chain &&
+            typeof publicClient.chain.indexerUrl === "string"
+              ? publicClient.chain.indexerUrl
+              : undefined)
+          : undefined,
     });
 
     onProgress?.({
@@ -256,24 +266,33 @@ export async function createStoreSync<TConfig extends StoreConfig = StoreConfig>
   );
 
   // TODO: move to its own file so we can test it, have its own debug instance, etc.
-  async function waitForTransaction(tx: Hex): Promise<void> {
+  async function waitForTransaction(tx: Hex): Promise<WaitForTransactionResult> {
     debug("waiting for tx", tx);
 
     // This currently blocks for async call on each block processed
     // We could potentially speed this up a tiny bit by racing to see if 1) tx exists in processed block or 2) fetch tx receipt for latest block processed
     const hasTransaction$ = recentBlocks$.pipe(
-      concatMap(async (blocks) => {
-        const txs = blocks.flatMap((block) => block.logs.map((op) => op.transactionHash).filter(isDefined));
-        if (txs.includes(tx)) return true;
+      // We use `mergeMap` instead of `concatMap` here to send the fetch request immediately when a new block range appears,
+      // instead of sending the next request only when the previous one completed.
+      mergeMap(async (blocks) => {
+        for (const block of blocks) {
+          const txs = block.logs.map((op) => op.transactionHash);
+          // If the transaction caused a log, it must have succeeded
+          if (txs.includes(tx)) {
+            return { blockNumber: block.blockNumber, status: "success" as const, transactionHash: tx };
+          }
+        }
 
         try {
           const lastBlock = blocks[0];
           debug("fetching tx receipt for block", lastBlock.blockNumber);
-          const receipt = await publicClient.getTransactionReceipt({ hash: tx });
-          return lastBlock.blockNumber >= receipt.blockNumber;
+          const { status, blockNumber, transactionHash } = await publicClient.getTransactionReceipt({ hash: tx });
+          if (lastBlock.blockNumber >= blockNumber) {
+            return { status, blockNumber, transactionHash };
+          }
         } catch (error) {
           if (error instanceof TransactionReceiptNotFoundError) {
-            return false;
+            return;
           }
           throw error;
         }
@@ -281,7 +300,7 @@ export async function createStoreSync<TConfig extends StoreConfig = StoreConfig>
       tap((result) => debug("has tx?", tx, result)),
     );
 
-    await firstValueFrom(hasTransaction$.pipe(filter(identity)));
+    return await firstValueFrom(hasTransaction$.pipe(filter(isDefined)));
   }
 
   return {

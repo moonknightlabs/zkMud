@@ -89,22 +89,14 @@ export function renderFieldMethods(options: RenderTableOptions): string {
 
       if (options.withGetters) {
         if (typeWrappingData && typeWrappingData.kind === "staticArray") {
-          result += renderWithFieldSuffix(options.withSuffixlessFieldMethods, field.name, (_methodNameSuffix) =>
-            renderWithStore(
-              storeArgument,
-              ({ _typedStore, _commentSuffix, _methodNamePrefix }) => `
-                /**
-                 * @notice Get the length of ${field.name}${_commentSuffix}.
-                 */
-                function ${_methodNamePrefix}length${_methodNameSuffix}(${renderArguments([
-                  _typedStore,
-                  _typedTableId,
-                  _typedKeyArgs,
-                ])}) internal pure returns (uint256) {
-                  return ${typeWrappingData.staticLength};
-                }
+          result += renderWithFieldSuffix(
+            options.withSuffixlessFieldMethods,
+            field.name,
+            (_methodNameSuffix) =>
+              `
+                // The length of ${field.name}
+                uint256 constant length${_methodNameSuffix} = ${typeWrappingData.staticLength};
               `,
-            ),
           );
         } else {
           result += renderWithFieldSuffix(options.withSuffixlessFieldMethods, field.name, (_methodNameSuffix) =>
@@ -145,6 +137,22 @@ export function renderFieldMethods(options: RenderTableOptions): string {
                 "uint256 _index",
               ])}) internal view returns (${portionData.typeWithLocation}) {
                 ${_keyTupleDefinition}
+
+                ${
+                  // If the index is within the static length,
+                  // but ahead of the dynamic length, return zero
+                  typeWrappingData && typeWrappingData.kind === "staticArray" && field.arrayElement
+                    ? `
+                    uint256 _byteLength = ${_store}.getDynamicFieldLength(_tableId, _keyTuple, ${dynamicSchemaIndex});
+                    uint256 dynamicLength = _byteLength / ${portionData.elementLength};
+                    uint256 staticLength = ${typeWrappingData.staticLength};
+
+                    if (_index < staticLength && _index >= dynamicLength) {
+                      return ${renderCastStaticBytesToType(field.arrayElement, `bytes${field.arrayElement.staticByteLength}(new bytes(0))`)};
+                    }`
+                    : ``
+                }
+
                 unchecked {
                   bytes memory _blob = ${_store}.getDynamicFieldSlice(
                     _tableId,
@@ -266,7 +274,7 @@ export function renderEncodeFieldSingle(field: RenderField) {
 export function renderDecodeValueType(field: RenderType, offset: number) {
   const { staticByteLength } = field;
 
-  const innerSlice = `Bytes.slice${staticByteLength}(_blob, ${offset})`;
+  const innerSlice = `Bytes.getBytes${staticByteLength}(_blob, ${offset})`;
 
   return renderCastStaticBytesToType(field, innerSlice);
 }
